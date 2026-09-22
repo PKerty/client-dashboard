@@ -3,8 +3,9 @@ import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 
 export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
-let db: Db | undefined;
-let pending: Promise<Db> | undefined;
+// Cache global: en dev, Next carga este módulo en más de un bundle (páginas y
+// rutas), y PGlite no admite dos instancias sobre el mismo directorio.
+const g = globalThis as unknown as { __clientDashboardDb?: Promise<Db> };
 
 async function connect(url: string): Promise<Db> {
   if (url.startsWith("pglite:")) {
@@ -21,11 +22,10 @@ async function connect(url: string): Promise<Db> {
 }
 
 export function getDb(): Promise<Db> {
-  if (db) return Promise.resolve(db);
-  if (!pending) {
+  if (!g.__clientDashboardDb) {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL no está definida");
-    pending = connect(url).then((d) => (db = d));
+    g.__clientDashboardDb = connect(url);
   }
-  return pending;
+  return g.__clientDashboardDb;
 }
