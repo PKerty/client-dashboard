@@ -3,11 +3,11 @@
 #
 # Uso:
 #   api.sh GET  /api/clients
-#   api.sh GET  /api/clients/cliente-a
-#   api.sh PATCH /api/clients/cliente-e '{"gmailLabelId":"Label_123"}'
-#   api.sh POST /api/clients/cliente-a/snapshots '{"status":"green","summary":"..."}'
-#   api.sh POST /api/clients/cliente-a/notes '{"body":"..."}'
-#   api.sh POST /api/clients/cliente-a/snapshots @/ruta/al/snapshot.json
+#   api.sh GET  /api/clients/<slug>
+#   api.sh PATCH /api/clients/<slug> '{"gmailLabelId":"Label_123"}'
+#   api.sh POST /api/clients/<slug>/snapshots '{"status":"green","summary":"..."}'
+#   api.sh POST /api/clients/<slug>/notes '{"body":"..."}'
+#   api.sh POST /api/clients/<slug>/snapshots @/ruta/al/snapshot.json
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"

@@ -55,8 +55,8 @@ describe("queries", () => {
   });
 
   it("patchClient", async () => {
-    const c = await patchClient(db, "cliente-a", { domains: ["cliente-a.example.com"], gmailLabelId: "L1" });
-    expect(c?.domains).toEqual(["cliente-a.example.com"]);
+    const c = await patchClient(db, "cliente-a", { domains: ["cliente-a.com"], gmailLabelId: "L1" });
+    expect(c?.domains).toEqual(["cliente-a.com"]);
     expect(c?.gmailLabelId).toBe("L1");
     expect(await patchClient(db, "nope", { domains: [] })).toBeNull();
   });

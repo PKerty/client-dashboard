@@ -25,7 +25,8 @@ docs/          spec y plan de implementación
    ```
 3. **Tarea programada.** En la app de escritorio de Claude Code, creá una
    tarea programada (sección *Scheduled*, o pidiéndoselo a Claude) con:
-   - prompt: el contenido de [automation/daily-brief.md](automation/daily-brief.md)
+   - prompt: el contenido de [automation/daily-brief.md](automation/daily-brief.md),
+     reemplazando `<RUTA_DEL_REPO>` por la ruta absoluta del repo en tu máquina
    - cron: `0 8 * * 1-5` (lunes a viernes a las 8, hora local)
    - conectores necesarios: Gmail y Granola conectados en claude.ai
 

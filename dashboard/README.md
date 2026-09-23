@@ -11,7 +11,8 @@ Drizzle, desplegado en Vercel. Lo alimenta una tarea programada de Claude
 cp .env.example .env.local        # y editá los valores
 # Sin Postgres instalado: DATABASE_URL=pglite:./.pglite
 npm install
-npm run db:seed                   # carga la lista de clientes (idempotente)
+cp clients.example.json clients.json   # tu lista de clientes (ignorada por git)
+npm run db:seed                   # carga la lista (idempotente)
 npm run dev                       # http://localhost:3000
 npm test                          # vitest contra PGlite en memoria
 ```
@@ -40,6 +41,26 @@ npm test                          # vitest contra PGlite en memoria
 Cada cambio de esquema: `npm run db:generate` (crea la migración, se
 commitea) y `npm run db:migrate` contra Neon.
 
+## Lista de clientes
+
+`clients.json` (ignorado por git) es la lista canónica. Un objeto por cliente:
+
+```json
+[
+  {
+    "slug": "identificador-url",
+    "name": "Nombre visible",
+    "gmailLabelName": "clients/nombre-de-la-etiqueta",
+    "domains": ["dominio-del-cliente.com"],
+    "keywords": ["palabras", "en títulos de reuniones"]
+  }
+]
+```
+
+`npm run db:seed` inserta los slugs que falten. Si `domains` queda vacío, la
+primera corrida los infiere de los hilos que ya tengan la etiqueta. Si la
+etiqueta no existe en Gmail, la corrida la crea.
+
 ## API
 
 Todas las rutas exigen `Authorization: Bearer $INGEST_TOKEN`.
@@ -58,7 +79,7 @@ Cuerpo de un snapshot:
 {
   "status": "green | yellow | red",
   "summary": "Situación en prosa.",
-  "nextSteps": [{ "text": "…", "owner": "el usuario", "due": "2026-09-30" }],
+  "nextSteps": [{ "text": "…", "owner": "…", "due": "2026-09-30" }],
   "openPoints": [{ "text": "…", "since": "2026-09-17" }],
   "sources": {
     "threads": [{ "id": "<gmail thread id>", "subject": "…" }],
