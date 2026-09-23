@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Dashboard privado en Vercel con la situación de cada cliente, alimentado por una tarea programada de Claude que lee Gmail y Granola, con notas propias de el usuario.
+**Goal:** Dashboard privado en Vercel con la situación de cada cliente, alimentado por una tarea programada de Claude que lee Gmail y Granola, con notas propias del usuario.
 
 **Architecture:** App Next.js 16 (App Router) en `dashboard/` que solo guarda y muestra, con Neon Postgres + Drizzle. Un API con bearer token recibe snapshots desde la tarea programada y expone el estado a Claude. Login por clave única con cookie HMAC verificada en `proxy.ts`.
 
@@ -427,8 +427,8 @@ describe("queries", () => {
     expect(await getClientDetail(db, "nope")).toBeNull();
   });
   it("patchClient", async () => {
-    const c = await patchClient(db, "cliente-a", { domains: ["cliente-a.example.com"], gmailLabelId: "L1" });
-    expect(c?.domains).toEqual(["cliente-a.example.com"]); expect(c?.gmailLabelId).toBe("L1");
+    const c = await patchClient(db, "cliente-a", { domains: ["cliente-a.com"], gmailLabelId: "L1" });
+    expect(c?.domains).toEqual(["cliente-a.com"]); expect(c?.gmailLabelId).toBe("L1");
   });
   it("update y delete de nota", async () => {
     const n = await createNote(db, "cliente-a", "a");
@@ -439,7 +439,7 @@ describe("queries", () => {
 });
 ```
 
-- [ ] **Step 4: queries** — usar `db.query.clients.findMany({ where: eq(clients.active, true) })` y por cada uno buscar último snapshot (`orderBy desc(snapshots.generatedAt), limit 1`) y notas (`orderBy desc(notes.createdAt)`). Para evitar N+1 es aceptable a esta escala (9 clientes). `createSnapshot`: buscar cliente por slug; si no está, null; insertar con `returning()`.
+- [ ] **Step 4: queries** — usar `db.query.clients.findMany({ where: eq(clients.active, true) })` y por cada uno buscar último snapshot (`orderBy desc(snapshots.generatedAt), limit 1`) y notas (`orderBy desc(notes.createdAt)`). Para evitar N+1 es aceptable a esta escala (menos de veinte clientes). `createSnapshot`: buscar cliente por slug; si no está, null; insertar con `returning()`.
 
 - [ ] **Step 5: rutas** — patrón de cada `route.ts`:
 
@@ -504,12 +504,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ slug: stri
 - Create: `dashboard/scripts/seed.ts`, `automation/scripts/api.sh`, `dashboard/README.md`
 - Modify: `dashboard/package.json` (script `db:seed`)
 
-- [ ] **Step 1: `scripts/seed.ts`** — con `dotenv/config` y `getDb()`, hace `insert(clients).values([...9 clientes de la spec...]).onConflictDoNothing()`. Cliente E y Cliente F con `gmailLabelName` `clients/cliente-e` y `clients/cliente-f`, sin id. Keywords: cliente-a→["cliente-a"], cliente-b→["cliente-b"], cliente-c→["cliente-c","cliente-c"], cliente-d→["cliente-d","braze","cliente-d"], cliente-e→["cliente-e"], cliente-f→["cliente-f"], cliente-g→["cliente-g"], cliente-h→["cliente-h"], cliente-i→["cliente-i"]. Correr con `npx tsx scripts/seed.ts`.
+- [ ] **Step 1: `scripts/seed.ts`** — con `dotenv` y `getDb()`, lee `dashboard/clients.json` (ignorado por git; `clients.example.json` da la forma: slug, name, gmailLabelName, domains, keywords) y hace `insert(clients).values(rows).onConflictDoNothing()`. Correr con `npx tsx scripts/seed.ts`.
 - [ ] **Step 2: `automation/scripts/api.sh`**
 
 ```bash
 #!/usr/bin/env bash
-# Uso: api.sh GET /api/clients | api.sh POST /api/clients/cliente-a/snapshots '{"status":"green",...}'
+# Uso: api.sh GET /api/clients | api.sh POST /api/clients/<slug>/snapshots '{"status":"green",...}'
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 set -a; source "$here/../../dashboard/.env.local"; set +a
@@ -519,7 +519,7 @@ args=(-sS -X "$method" "${DASHBOARD_URL%/}$path" -H "Authorization: Bearer $INGE
 curl "${args[@]}"
 ```
 `.env.example` gana `DASHBOARD_URL=http://localhost:3000`.
-- [ ] **Step 3: README** — pasos para el usuario: crear proyecto en Vercel apuntando a `dashboard/` como root, agregar Neon desde el marketplace (setea `DATABASE_URL`), cargar `DASHBOARD_PASSWORD`, `AUTH_SECRET`, `INGEST_TOKEN` (generar con `openssl rand -hex 32`), correr `npm run db:migrate` y `npm run db:seed` con el `DATABASE_URL` de Neon en `.env.local`, y setear `DASHBOARD_URL` con la URL del deploy.
+- [ ] **Step 3: README** — pasos de deploy: crear proyecto en Vercel apuntando a `dashboard/` como root, agregar Neon desde el marketplace (setea `DATABASE_URL`), cargar `DASHBOARD_PASSWORD`, `AUTH_SECRET`, `INGEST_TOKEN` (generar con `openssl rand -hex 32`), correr `npm run db:migrate` y `npm run db:seed` con el `DATABASE_URL` de Neon en `.env.local`, y setear `DASHBOARD_URL` con la URL del deploy.
 - [ ] **Step 4: probar `api.sh GET /api/clients` contra dev local. Commit** `feat: seed de clientes y script de api para la automatización`
 
 ---
@@ -529,7 +529,7 @@ curl "${args[@]}"
 **Files:**
 - Create: `automation/daily-brief.md`
 
-- [ ] **Step 1: escribir el prompt** siguiendo la sección "Flujo de la corrida diaria" de la spec, autocontenido: qué conectores usar (Gmail, Granola), cómo invocar `automation/scripts/api.sh` con ruta absoluta, el JSON exacto del snapshot, criterios del semáforo, regla de `hasChanges=false`, tagueo con `label_thread`, pasos de la primera corrida (crear etiquetas Cliente E/Cliente F con `create_label`, inferir dominios y PATCH), y formato del resumen final (una línea por cliente: nombre, semáforo, qué cambió; lista de fallas).
+- [ ] **Step 1: escribir el prompt** siguiendo la sección "Flujo de la corrida diaria" de la spec, autocontenido: qué conectores usar (Gmail, Granola), cómo invocar `automation/scripts/api.sh` con ruta absoluta, el JSON exacto del snapshot, criterios del semáforo, regla de `hasChanges=false`, tagueo con `label_thread`, pasos de la primera corrida (crear las etiquetas que falten con `create_label`, inferir dominios y PATCH), y formato del resumen final (una línea por cliente: nombre, semáforo, qué cambió; lista de fallas).
 - [ ] **Step 2: dar de alta la tarea** con `create_scheduled_task` (`taskId: daily-client-brief`, cron `0 8 * * 1-5`, prompt = contenido del archivo).
 - [ ] **Step 3: correrla una vez a mano** con `run_scheduled_task` y verificar que el dashboard muestre snapshots. Commit** `feat: prompt de la corrida diaria`
 

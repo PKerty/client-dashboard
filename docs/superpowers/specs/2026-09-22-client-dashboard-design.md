@@ -1,13 +1,13 @@
 # Client dashboard: diseño
 
-Fecha: 2026-09-22. Estado: aprobado por el usuario en chat.
+Fecha: 2026-09-22. Estado: aprobado en chat.
 
 ## Objetivo
 
-Un dashboard privado con la situación de cada cliente de el usuario (estado, próximos
-pasos, puntos abiertos), alimentado automáticamente desde Gmail y Granola, con
-notas propias de el usuario que la automatización nunca pisa. el usuario lo consulta en
-el navegador o preguntándole a Claude, que lee los mismos datos.
+Un dashboard privado con la situación de cada cliente (estado, próximos pasos,
+puntos abiertos), alimentado automáticamente desde Gmail y Granola, con notas
+propias del usuario que la automatización nunca pisa. Se consulta en el
+navegador o preguntándole a Claude, que lee los mismos datos.
 
 ## Decisiones tomadas
 
@@ -15,25 +15,13 @@ el navegador o preguntándole a Claude, que lee los mismos datos.
 - Sin Jev ni otro clasificador externo: el volumen (decenas de hilos) no lo
   justifica. La etapa de ingesta queda aislada para poder agregarlo después.
 - La ingesta y la síntesis las hace Claude desde una tarea programada de la
-  app de escritorio, que corre en la Mac de el usuario con sus conectores de Gmail
-  y Granola. La app web no tiene credenciales de Google, Granola ni Anthropic.
+  app de escritorio, que corre en la máquina del usuario con sus conectores de
+  Gmail y Granola. La app web no tiene credenciales de Google, Granola ni Anthropic.
 - Autenticación por clave única. Google SSO queda fuera de esta versión.
-- Lista canónica de clientes (fuente de verdad: tabla `clients`):
-
-  | slug         | nombre              | etiqueta Gmail            | dominios       |
-  |--------------|---------------------|---------------------------|----------------|
-  | cliente-a         | Cliente A                | clients/cliente-a              | cliente-a.example.com        |
-  | cliente-b  | Cliente B         | clients/cliente-b       | cliente-b.example.com |
-  | cliente-c       | Cliente C  | clients/Cliente C| cliente-c.example.com      |
-  | cliente-d     | Cliente D            | clients/cliente-d          | cliente-d.example.com    |
-  | cliente-e       | Cliente E              | (crear) clients/cliente-e    | cliente-e.example.com     |
-  | cliente-f      | Cliente F             | (crear) clients/cliente-f   | cliente-f.example.com     |
-  | cliente-g | Cliente G        | clients/Cliente G      | inferir        |
-  | cliente-h        | Cliente H               | clients/cliente-h             | inferir        |
-  | cliente-i          | Cliente I                 | clients/Cliente I               | inferir        |
-
-  "inferir": la primera corrida lee los hilos ya etiquetados y guarda los
-  dominios externos que encuentre.
+- Lista canónica de clientes: `dashboard/clients.json`, ignorado por git y
+  cargado a la tabla `clients` con `npm run db:seed`. Si un cliente no tiene
+  dominios cargados, la primera corrida los infiere de los hilos que ya tengan
+  su etiqueta; si la etiqueta no existe en Gmail, la crea.
 
 ## Piezas
 
@@ -55,8 +43,8 @@ el navegador o preguntándole a Claude, que lee los mismos datos.
 ### 3. Chat
 
 - Claude lee `GET /api/clients` y `GET /api/clients/:slug` con el mismo
-  script, y crea notas con `POST /api/clients/:slug/notes` cuando el usuario le
-  dicta una nota.
+  script, y crea notas con `POST /api/clients/:slug/notes` cuando el usuario
+  le dicta una nota.
 
 ## Datos
 
@@ -66,7 +54,7 @@ clients
   slug          text unique
   name          text
   gmail_label_id text null        -- id de la etiqueta en Gmail
-  gmail_label_name text           -- "clients/cliente-a"
+  gmail_label_name text           -- "clients/<nombre>"
   domains       text[]            -- dominios externos del cliente
   keywords      text[]            -- para matchear títulos de reuniones
   active        boolean default true
@@ -128,7 +116,7 @@ por la sesión de la cookie, no por el token.
   Tarjeta: nombre, semáforo, "hace X", primera oración de la situación,
   cantidad de puntos abiertos.
 - `/clients/[slug]`: cabecera con nombre y semáforo; situación; próximos pasos;
-  puntos abiertos; notas de el usuario (lista con fecha, formulario para agregar,
+  puntos abiertos; notas del usuario (lista con fecha, formulario para agregar,
   editar y borrar inline); historial de snapshots colapsado (fecha, semáforo,
   resumen); fuentes del último snapshot con links a Gmail y Granola.
 - Responsive; se usa desde el celular.
@@ -145,16 +133,16 @@ Para cada cliente activo de `GET /api/clients`:
    las reuniones con participantes de sus dominios o título que contenga una
    keyword. Se lee el contenido de las que no figuran en `sources` del
    último snapshot.
-4. Síntesis: partiendo del snapshot anterior y las notas de el usuario, redactar
+4. Síntesis: partiendo del snapshot anterior y las notas del usuario, redactar
    situación, próximos pasos y puntos abiertos actualizados y asignar
    semáforo (rojo: hay algo bloqueado o vencido o una urgencia del cliente;
-   amarillo: hay pendientes de el usuario sin fecha o sin respuesta; verde: todo
+   amarillo: hay pendientes del usuario sin fecha o sin respuesta; verde: todo
    en curso). Si no hubo mails ni reuniones nuevas, `has_changes=false` y se
    repite el estado anterior.
 5. `POST /api/clients/:slug/snapshots`.
 
-Primera corrida, además: crear etiquetas `clients/cliente-e` y `clients/cliente-f`
-y guardar su id con PATCH; inferir dominios de Cliente G, Cliente H y Cliente I.
+Primera corrida, además: crear las etiquetas de Gmail que falten y guardar su
+id con PATCH; inferir los dominios de los clientes que no los tengan.
 
 Si un cliente falla, la corrida sigue con el resto y lo lista en el resumen
 final. La notificación de la corrida incluye, por cliente, semáforo y una
@@ -185,8 +173,8 @@ línea de qué cambió.
 4. API: rutas de lectura, PATCH, snapshots y notas, con token.
 5. UI: grilla de clientes.
 6. UI: detalle de cliente con notas (server actions) e historial.
-7. Seed de clientes y scripts de `automation/scripts/`.
+7. Seed de clientes desde `clients.json` y scripts de `automation/scripts/`.
 8. Prompt `automation/daily-brief.md` y alta de la tarea programada.
 
-el usuario hace por su cuenta: crear el proyecto en Vercel, agregar Neon desde el
+Queda a cargo del usuario: crear el proyecto en Vercel, agregar Neon desde el
 marketplace y cargar las variables de entorno. Los pasos van en el README.
